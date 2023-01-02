@@ -98,7 +98,7 @@ DEB_VERSION+="+fixes"
 if [ "${CONFIGURATION}" = "Debug" ]; then
     DEB_VERSION+="+debug"
     CONTROL_FILE="control-debug"
-    # git apply "${SCRIPT_DIR}/patches/enable_logging.patch"
+    git apply "${SCRIPT_DIR}/patches/enable_logging.patch"
     APPLIED_PATCHES+=("${SCRIPT_DIR}/patches/enable_logging.patch")
 fi
 
@@ -107,14 +107,14 @@ if [ -n "${ENABLE_LOGGING}" ] && [ "${CONFIGURATION}" != "Debug" ]; then
     COMMON_OPTIONS+=('SWIFT_ACTIVE_COMPILATION_CONDITIONS=$SWIFT_ACTIVE_COMPILATION_CONDITIONS ENABLE_LOGGING')
     DEB_VERSION+="+logging"
     CONTROL_FILE="control-logging"
-    # git apply "${SCRIPT_DIR}/patches/enable_logging.patch"
+    git apply "${SCRIPT_DIR}/patches/enable_logging.patch"
     APPLIED_PATCHES+=("${SCRIPT_DIR}/patches/enable_logging.patch")
 fi
 
 if [ -n "${DHINAK}" ]; then
     DEB_VERSION+="+dhinak"
     CONTROL_FILE="control-dhinak"
-    # git apply "${SCRIPT_DIR}/patches/output_serial.patch"
+    git apply "${SCRIPT_DIR}/patches/output_serial.patch"
     APPLIED_PATCHES+=("${SCRIPT_DIR}/patches/output_serial.patch")
 fi
 

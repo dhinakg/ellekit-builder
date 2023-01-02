@@ -96,9 +96,12 @@ fi
 GIT_COMMIT_HASH="$(git describe --tags --always --dirty | sed 's/-/./g' | sed 's/^v//g')"
 
 DEB_VERSION="${GIT_COMMIT_HASH}${GIT_BRANCH}"
+APPLIED_PATCHES=()
+
 
 # Fixes for the latest commit
 git apply "fixes/add_shared_region.patch"
+APPLIED_PATCHES+=("add_shared_region.patch")
 DEB_VERSION+="+fixes"
 
 if [ -n "${ROOTLESS}" ]; then
@@ -112,6 +115,7 @@ if [ "${CONFIGURATION}" = "Debug" ]; then
     DEB_VERSION+="+debug"
     CONTROL_PATH="control-debug"
     git apply "patches/enable_logging.patch"
+    APPLIED_PATCHES+=("enable_logging.patch")
 fi
 
 if [ -n "${ENABLE_LOGGING}" ] && [ "${CONFIGURATION}" != "Debug" ]; then
@@ -120,12 +124,14 @@ if [ -n "${ENABLE_LOGGING}" ] && [ "${CONFIGURATION}" != "Debug" ]; then
     DEB_VERSION+="+logging"
     CONTROL_PATH="control-logging"
     git apply "patches/enable_logging.patch"
+    APPLIED_PATCHES+=("enable_logging.patch")
 fi
 
 if [ -n "${DHINAK}" ]; then
     DEB_VERSION+="+dhinak"
     CONTROL_PATH="control-dhinak"
     git apply "patches/output_serial.patch"
+    APPLIED_PATCHES+=("output_serial.patch")
 fi
 
 if [ -z "${CONTROL_PATH}" ]; then
@@ -202,3 +208,8 @@ if [ ! -d packages ]; then
 fi
 "${FAKEROOT}" -i work/.fakeroot -s work/.fakeroot -- dpkg-deb -Zgzip -b work/dist "packages/ellekit_${DEB_VERSION}_${DEB_ARCH}_$(date +%F).deb"
 cp "packages/ellekit_${DEB_VERSION}_${DEB_ARCH}_$(date +%F).deb" "packages/ellekit_latest_${DEB_ARCH}.deb"
+
+# Revert applied patches, in order
+for ((idx = ${#APPLIED_PATCHES[@]} - 1; idx >= 0; idx--)); do
+    git apply --reverse "${APPLIED_PATCHES[idx]}"
+done

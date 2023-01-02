@@ -27,12 +27,20 @@ jobs:
         include:
           - name: release
             flags: ""
+          # - name: release (rootless)
+          #   flags: "-r"
           - name: release with logs
             flags: "-l"
+          # - name: release with logs (rootless)
+          #   flags: "-l -r"
           - name: debug
             flags: "-c Debug"
+          # - name: debug (rootless)
+          #   flags: "-c Debug -r"
           - name: dhinak
-            flags: "-c Debug -r"
+            flags: "-c Debug -s"
+          # - name: dhinak (rootless)
+          #   flags: "-c Debug -s -r"
 
     steps:
       - name: Checkout

@@ -8,6 +8,10 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '*/5 * * * *'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+
 jobs:
   needs-build:
     name: Check if build is needed
@@ -42,8 +46,6 @@ jobs:
     runs-on: macos-12
     needs: needs-build
     if: ${{ needs.needs-build.outputs.build == 'true' }}
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}
     strategy:
       matrix:
         include:

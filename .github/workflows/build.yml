@@ -57,7 +57,7 @@ jobs:
       #     rm -rf builder
       - name: Add builder to git exclude
         run: |
-          printf "builder\n" >> .git/info/exclude
+          printf "builder\nDerivedData\npackages\n" >> .git/info/exclude
       
       - name: Get tags
         run: git fetch --prune --unshallow --tags
@@ -76,10 +76,6 @@ jobs:
       - name: Build ${{ matrix.name }}
         run: |
           ./builder/build.sh ${{ matrix.flags }}
-          
-      - name: Build ${{ matrix.name }} (rootless)
-        run: |
-          ./builder/build.sh ${{ matrix.flags }} -r
 
       - name: Upload packages
         uses: actions/upload-artifact@v3

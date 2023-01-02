@@ -25,7 +25,6 @@ Build and package ElleKit for CONFIGURATION and TARGET.
                       currently:
                       output to /dev/console (serial) 
                       instead of /var/mobile/log.txt
-    -r                package for rootless iOS
     -c CONFIGURATION  build configuration passed to Xcode
                       Debug or Release (default)
     -t TARGET         target to build for
@@ -61,9 +60,6 @@ while getopts 'c:t:lsrh' opt; do
     s)
         DHINAK=true
         ;;
-    r)
-        ROOTLESS=true
-        ;;
     h | ?)
         show_help
         exit 0
@@ -80,14 +76,6 @@ if [ -z "$SDK" ]; then
     SDK=iphoneos
 fi
 
-if [ -n "${ROOTLESS}" ]; then
-    INSTALL_PREFIX="/var/jb"
-    DEB_ARCH="iphoneos-arm64"
-else
-    INSTALL_PREFIX=
-    DEB_ARCH="iphoneos-arm"
-fi
-
 COMMON_OPTIONS=(-sdk "${SDK}" -configuration "${CONFIGURATION}" CODE_SIGN_IDENTITY='' CODE_SIGNING_ALLOWED=NO BUILD_LIBRARIES_FOR_DISTRIBUTION=YES)
 GIT_BRANCH="+$(git rev-parse --abbrev-ref HEAD)"
 if [ "${GIT_BRANCH}" = "+main" ]; then
@@ -102,21 +90,15 @@ APPLIED_PATCHES=()
 
 
 # Fixes for the latest commit
-git apply "${SCRIPT_DIR}/fixes/add_shared_region.patch"
+git apply "${SCRIPT_DIR}/fixes/add_shared_region.patch" || true
 APPLIED_PATCHES+=("${SCRIPT_DIR}/fixes/add_shared_region.patch")
 DEB_VERSION+="+fixes"
-
-if [ -n "${ROOTLESS}" ]; then
-    # This should be evident from iphoneos-arm64
-    # DEB_VERSION+="+rootless"
-    true
-fi
 
 # Do not add configuration for release builds
 if [ "${CONFIGURATION}" = "Debug" ]; then
     DEB_VERSION+="+debug"
     CONTROL_FILE="control-debug"
-    git apply "${SCRIPT_DIR}/patches/enable_logging.patch"
+    # git apply "${SCRIPT_DIR}/patches/enable_logging.patch"
     APPLIED_PATCHES+=("${SCRIPT_DIR}/patches/enable_logging.patch")
 fi
 
@@ -125,14 +107,14 @@ if [ -n "${ENABLE_LOGGING}" ] && [ "${CONFIGURATION}" != "Debug" ]; then
     COMMON_OPTIONS+=('SWIFT_ACTIVE_COMPILATION_CONDITIONS=$SWIFT_ACTIVE_COMPILATION_CONDITIONS ENABLE_LOGGING')
     DEB_VERSION+="+logging"
     CONTROL_FILE="control-logging"
-    git apply "${SCRIPT_DIR}/patches/enable_logging.patch"
+    # git apply "${SCRIPT_DIR}/patches/enable_logging.patch"
     APPLIED_PATCHES+=("${SCRIPT_DIR}/patches/enable_logging.patch")
 fi
 
 if [ -n "${DHINAK}" ]; then
     DEB_VERSION+="+dhinak"
     CONTROL_FILE="control-dhinak"
-    git apply "${SCRIPT_DIR}/patches/output_serial.patch"
+    # git apply "${SCRIPT_DIR}/patches/output_serial.patch"
     APPLIED_PATCHES+=("${SCRIPT_DIR}/patches/output_serial.patch")
 fi
 
@@ -161,58 +143,70 @@ xcodebuild -target ellekit "${COMMON_OPTIONS[@]}"
 xcodebuild -target launchd "${COMMON_OPTIONS[@]}"
 xcodebuild -target loader "${COMMON_OPTIONS[@]}"
 
-"${RM}" -rf work
-"${MKDIR}" -p work/dist
+for i in 0 1
+do
+    if [ "$i" = 1 ]; then
+        # Rootless
+        INSTALL_PREFIX="/var/jb"
+        DEB_ARCH="iphoneos-arm64"
+    else
+        INSTALL_PREFIX=
+        DEB_ARCH="iphoneos-arm"
+    fi
 
-# Not compatible with BSD install!
-# TODO: adjust for macoS
-"${INSTALL}" -Dm644 build/"${CONFIGURATION}"*/libellekit.dylib "work/dist/${INSTALL_PREFIX}/usr/lib/libellekit.dylib"
-"${INSTALL}" -Dm644 build/"${CONFIGURATION}"*/pspawn.dylib "work/dist/${INSTALL_PREFIX}/usr/lib/ellekit/pspawn.dylib"
-"${INSTALL}" -Dm755 build/"${CONFIGURATION}"*/loader "work/dist/${INSTALL_PREFIX}/usr/libexec/ellekit/loader"
+    "${RM}" -rf work
+    "${MKDIR}" -p work/dist
 
-"${LN}" -s libellekit.dylib "work/dist/${INSTALL_PREFIX}/usr/lib/libsubstrate.dylib"
-"${LN}" -s libellekit.dylib "work/dist/${INSTALL_PREFIX}/usr/lib/libhooker.dylib"
+    # Not compatible with BSD install!
+    # TODO: adjust for macoS
+    "${INSTALL}" -Dm644 build/"${CONFIGURATION}"*/libellekit.dylib "work/dist/${INSTALL_PREFIX}/usr/lib/libellekit.dylib"
+    "${INSTALL}" -Dm644 build/"${CONFIGURATION}"*/pspawn.dylib "work/dist/${INSTALL_PREFIX}/usr/lib/ellekit/pspawn.dylib"
+    "${INSTALL}" -Dm755 build/"${CONFIGURATION}"*/loader "work/dist/${INSTALL_PREFIX}/usr/libexec/ellekit/loader"
 
-"${INSTALL_NAME_TOOL}" -id "${INSTALL_PREFIX}/usr/lib/libellekit.dylib" "work/dist/${INSTALL_PREFIX}/usr/lib/libellekit.dylib"
-"${INSTALL_NAME_TOOL}" -id "${INSTALL_PREFIX}/usr/lib/ellekit/pspawn.dylib" "work/dist/${INSTALL_PREFIX}/usr/lib/ellekit/pspawn.dylib"
+    "${LN}" -s libellekit.dylib "work/dist/${INSTALL_PREFIX}/usr/lib/libsubstrate.dylib"
+    "${LN}" -s libellekit.dylib "work/dist/${INSTALL_PREFIX}/usr/lib/libhooker.dylib"
 
-"${MKDIR}" -p "work/dist/${INSTALL_PREFIX}/usr/lib/TweakInject"
+    "${INSTALL_NAME_TOOL}" -id "${INSTALL_PREFIX}/usr/lib/libellekit.dylib" "work/dist/${INSTALL_PREFIX}/usr/lib/libellekit.dylib"
+    "${INSTALL_NAME_TOOL}" -id "${INSTALL_PREFIX}/usr/lib/ellekit/pspawn.dylib" "work/dist/${INSTALL_PREFIX}/usr/lib/ellekit/pspawn.dylib"
 
-# Some extra substrate compatibility
-"${MKDIR}" -p "work/dist/${INSTALL_PREFIX}/Library/Frameworks/CydiaSubstrate.framework"
-"${LN}" -s "${INSTALL_PREFIX}/usr/lib/libellekit.dylib" "work/dist/${INSTALL_PREFIX}/Library/Frameworks/CydiaSubstrate.framework/CydiaSubstrate"
-"${MKDIR}" -p "work/dist/${INSTALL_PREFIX}/Library/MobileSubstrate"
-"${LN}" -s "${INSTALL_PREFIX}/usr/lib/TweakInject" "work/dist/${INSTALL_PREFIX}/Library/MobileSubstrate/DynamicLibraries"
+    "${MKDIR}" -p "work/dist/${INSTALL_PREFIX}/usr/lib/TweakInject"
 
-"${FIND}" "work/dist/${INSTALL_PREFIX}/usr" -type f -exec "${STRIP}" -x {} \;
+    # Some extra substrate compatibility
+    "${MKDIR}" -p "work/dist/${INSTALL_PREFIX}/Library/Frameworks/CydiaSubstrate.framework"
+    "${LN}" -s "${INSTALL_PREFIX}/usr/lib/libellekit.dylib" "work/dist/${INSTALL_PREFIX}/Library/Frameworks/CydiaSubstrate.framework/CydiaSubstrate"
+    "${MKDIR}" -p "work/dist/${INSTALL_PREFIX}/Library/MobileSubstrate"
+    "${LN}" -s "${INSTALL_PREFIX}/usr/lib/TweakInject" "work/dist/${INSTALL_PREFIX}/Library/MobileSubstrate/DynamicLibraries"
 
-"${FIND}" "work/dist/${INSTALL_PREFIX}/usr/lib" -type f -exec "${LDID}" -S {} \;
-"${LDID}" -Sloader/taskforpid.xml "work/dist/${INSTALL_PREFIX}/usr/libexec/ellekit/loader"
+    "${FIND}" "work/dist/${INSTALL_PREFIX}/usr" -type f -exec "${STRIP}" -x {} \;
 
-"${RM}" -f work/.fakeroot
-"${TOUCH}" work/.fakeroot
-"${FAKEROOT}" -s work/.fakeroot -- "${CHOWN}" -R 0:0 work/dist/*
+    "${FIND}" "work/dist/${INSTALL_PREFIX}/usr/lib" -type f -exec "${LDID}" -S {} \;
+    "${LDID}" -Sloader/taskforpid.xml "work/dist/${INSTALL_PREFIX}/usr/libexec/ellekit/loader"
 
-SIZE=$(du -sk work/dist | cut -f 1)
-"${MKDIR}" -p work/dist/DEBIAN
-"${SED}" -e "s|@DEB_VERSION@|${DEB_VERSION}|g" -e "s|@DEB_ARCH@|${DEB_ARCH}|g" "${SCRIPT_DIR}/packaging/${CONTROL_FILE}" > work/dist/DEBIAN/control
-echo "Installed-Size: $SIZE" >> work/dist/DEBIAN/control
+    "${RM}" -f work/.fakeroot
+    "${TOUCH}" work/.fakeroot
+    "${FAKEROOT}" -s work/.fakeroot -- "${CHOWN}" -R 0:0 work/dist/*
 
-# Not compatible with BSD sed!
-"${SED}" -i'' '$a\' work/dist/DEBIAN/control
+    SIZE=$(du -sk work/dist | cut -f 1)
+    "${MKDIR}" -p work/dist/DEBIAN
+    "${SED}" -e "s|@DEB_VERSION@|${DEB_VERSION}|g" -e "s|@DEB_ARCH@|${DEB_ARCH}|g" "${SCRIPT_DIR}/packaging/${CONTROL_FILE}" > work/dist/DEBIAN/control
+    echo "Installed-Size: $SIZE" >> work/dist/DEBIAN/control
 
-cd work/dist && "${FIND}" . -type f ! -regex '.*?DEBIAN.*' -printf '"%P" ' | "${XARGS}" "${MD5SUM}" >DEBIAN/md5sums
-cd ../..
-"${FAKEROOT}" -i work/.fakeroot -s work/.fakeroot -- "${CHMOD}" 0755 work/dist/DEBIAN/*
-"${FIND}" work/dist -name '.DS_Store' -type f -delete
-if [ ! -d packages ]; then
-    "${MKDIR}" packages
-fi
-"${FAKEROOT}" -i work/.fakeroot -s work/.fakeroot -- dpkg-deb -Zgzip -b work/dist "packages/ellekit_${DEB_VERSION}_${DEB_ARCH}_$(date +%F).deb"
-cp "packages/ellekit_${DEB_VERSION}_${DEB_ARCH}_$(date +%F).deb" "packages/ellekit_latest_${DEB_ARCH}.deb"
+    # Not compatible with BSD sed!
+    "${SED}" -i'' '$a\' work/dist/DEBIAN/control
+
+    cd work/dist && "${FIND}" . -type f ! -regex '.*?DEBIAN.*' -printf '"%P" ' | "${XARGS}" "${MD5SUM}" >DEBIAN/md5sums
+    cd ../..
+    "${FAKEROOT}" -i work/.fakeroot -s work/.fakeroot -- "${CHMOD}" 0755 work/dist/DEBIAN/*
+    "${FIND}" work/dist -name '.DS_Store' -type f -delete
+    if [ ! -d packages ]; then
+        "${MKDIR}" packages
+    fi
+    "${FAKEROOT}" -i work/.fakeroot -s work/.fakeroot -- dpkg-deb -Zgzip -b work/dist "packages/ellekit_${DEB_VERSION}_${DEB_ARCH}_$(date +%F).deb"
+    # cp "packages/ellekit_${DEB_VERSION}_${DEB_ARCH}_$(date +%F).deb" "packages/ellekit_latest_${DEB_ARCH}.deb"
+    "${RM}" -rf work
+done
 
 # Revert applied patches, in order
 for ((idx = ${#APPLIED_PATCHES[@]} - 1; idx >= 0; idx--)); do
     git apply --reverse "${APPLIED_PATCHES[idx]}"
 done
-"${RM}" -rf work

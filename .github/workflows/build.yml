@@ -78,7 +78,7 @@ jobs:
     name: Deploy
     runs-on: ubuntu-latest
     needs: package
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && false()}}
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && false }}
 
     steps:
       - name: Download artifacts

@@ -95,6 +95,10 @@ GIT_COMMIT_HASH="$(git describe --tags --always --dirty | sed 's/-/./g' | sed 's
 
 DEB_VERSION="${GIT_COMMIT_HASH}${GIT_BRANCH}"
 
+# Fixes for the latest commit
+git apply "fixes/add_shared_region.patch"
+DEB_VERSION+="+fixes"
+
 if [ -n "${ROOTLESS}" ]; then
     # This should be evident from iphoneos-arm64
     # DEB_VERSION+="+rootless"

@@ -1,15 +1,15 @@
-Package: ellekit-logging
-Name: ElleKit (Beta) (Release with Logging)
+Package: ellekit-dhinak
+Name: ElleKit (Beta) (Dhinak)
 Version: @DEB_VERSION@
 Architecture: @DEB_ARCH@
 Maintainer: Dhinak G <dhinak@dhinak.net>
-Conflicts: cy+cpu.arm64e, com.ex.substitute, org.coolstar.libhooker, science.xnu.substitute, mobilesubstrate, ellekit, ellekit-debug, ellekit-dhinak
-Replaces: com.ex.libsubstitute, org.coolstar.libhooker, mobilesubstrate, ellekit, ellekit-debug, ellekit-dhinak
+Conflicts: cy+cpu.arm64e, com.ex.substitute, org.coolstar.libhooker, science.xnu.substitute, mobilesubstrate, ellekit, ellekit-debug, ellekit-logging
+Replaces: com.ex.libsubstitute, org.coolstar.libhooker, mobilesubstrate, ellekit, ellekit-debug, ellekit-logging
 Provides: mobilesubstrate (= 99), org.coolstar.libhooker (= 1.6.9), ellekit
 Author: Evelyn
 Section: Tweak Injection
 Priority: optional
-Description: ElleKit tweak injection libraries and loader
+Description: ElleKit tweak injection libraries and loader (special build)
  Currently NO SAFE MODE INCLUDED! Install at your own risk!
  ElleKit tweak injection libraries and loader. Currently in beta,
  does not currently include a LaunchDaemon.

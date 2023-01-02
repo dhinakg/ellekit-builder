@@ -19,7 +19,9 @@ Build and package ElleKit for CONFIGURATION and TARGET.
     -h                display this help and exit
     -l                enable logging on RELEASE builds.
                       (Already enabled on debug builds.)
-    -s                output to /dev/console (serial) 
+    -s                Dhinak's special builds
+                      currently:
+                      output to /dev/console (serial) 
                       instead of /var/mobile/log.txt
     -r                package for rootless iOS
     -c CONFIGURATION  build configuration passed to Xcode
@@ -55,7 +57,7 @@ while getopts 'c:t:lsrh' opt; do
         ENABLE_LOGGING=true
         ;;
     s)
-        OUTPUT_SERIAL=true
+        DHINAK=true
         ;;
     r)
         ROOTLESS=true
@@ -120,8 +122,9 @@ if [ -n "${ENABLE_LOGGING}" ] && [ "${CONFIGURATION}" != "Debug" ]; then
     git apply "patches/enable_logging.patch"
 fi
 
-if [ -n "${OUTPUT_SERIAL}" ]; then
-    DEB_VERSION+="+serial"
+if [ -n "${DHINAK}" ]; then
+    DEB_VERSION+="+dhinak"
+    CONTROL_PATH="control-dhinak"
     git apply "patches/output_serial.patch"
 fi
 

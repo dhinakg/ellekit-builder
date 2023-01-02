@@ -25,12 +25,12 @@ jobs:
     strategy:
       matrix:
         include:
-          # - name: release
-          #   flags: ""
-          # - name: release with logs
-          #   flags: "-l"
-          # - name: debug
-          #   flags: "-c Debug"
+          - name: release
+            flags: ""
+          - name: release with logs
+            flags: "-l"
+          - name: debug
+            flags: "-c Debug"
           - name: dhinak
             flags: "-c Debug -r"
 

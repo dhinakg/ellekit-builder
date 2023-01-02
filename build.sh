@@ -101,7 +101,7 @@ APPLIED_PATCHES=()
 
 # Fixes for the latest commit
 git apply "fixes/add_shared_region.patch"
-APPLIED_PATCHES+=("add_shared_region.patch")
+APPLIED_PATCHES+=("fixes/add_shared_region.patch")
 DEB_VERSION+="+fixes"
 
 if [ -n "${ROOTLESS}" ]; then
@@ -115,7 +115,7 @@ if [ "${CONFIGURATION}" = "Debug" ]; then
     DEB_VERSION+="+debug"
     CONTROL_PATH="control-debug"
     git apply "patches/enable_logging.patch"
-    APPLIED_PATCHES+=("enable_logging.patch")
+    APPLIED_PATCHES+=("patches/enable_logging.patch")
 fi
 
 if [ -n "${ENABLE_LOGGING}" ] && [ "${CONFIGURATION}" != "Debug" ]; then
@@ -124,14 +124,14 @@ if [ -n "${ENABLE_LOGGING}" ] && [ "${CONFIGURATION}" != "Debug" ]; then
     DEB_VERSION+="+logging"
     CONTROL_PATH="control-logging"
     git apply "patches/enable_logging.patch"
-    APPLIED_PATCHES+=("enable_logging.patch")
+    APPLIED_PATCHES+=("patches/enable_logging.patch")
 fi
 
 if [ -n "${DHINAK}" ]; then
     DEB_VERSION+="+dhinak"
     CONTROL_PATH="control-dhinak"
     git apply "patches/output_serial.patch"
-    APPLIED_PATCHES+=("output_serial.patch")
+    APPLIED_PATCHES+=("patches/output_serial.patch")
 fi
 
 if [ -z "${CONTROL_PATH}" ]; then

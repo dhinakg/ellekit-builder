@@ -5,6 +5,8 @@
 
 set -e
 
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+
 abort() {
     echo "ERROR: $1!"
     exit 1
@@ -93,15 +95,15 @@ if [ "${GIT_BRANCH}" = "+main" ]; then
 fi
 
 # We can have multiple commits in a day, so use the number of additional commits instead of the date
-GIT_COMMIT_HASH="$(git describe --tags --always --dirty | sed 's/-/./g' | sed 's/^v//g')"
+GIT_COMMIT_HASH="$(git describe --tags --always --dirty | sed 's/-/~/' | sed 's/-/\./g' | sed 's/\.g/\./g' | sed 's/^v//g')"
 
 DEB_VERSION="${GIT_COMMIT_HASH}${GIT_BRANCH}"
 APPLIED_PATCHES=()
 
 
 # Fixes for the latest commit
-git apply "fixes/add_shared_region.patch"
-APPLIED_PATCHES+=("fixes/add_shared_region.patch")
+git apply "${SCRIPT_DIR}/fixes/add_shared_region.patch"
+APPLIED_PATCHES+=("${SCRIPT_DIR}/fixes/add_shared_region.patch")
 DEB_VERSION+="+fixes"
 
 if [ -n "${ROOTLESS}" ]; then
@@ -113,29 +115,29 @@ fi
 # Do not add configuration for release builds
 if [ "${CONFIGURATION}" = "Debug" ]; then
     DEB_VERSION+="+debug"
-    CONTROL_PATH="control-debug"
-    git apply "patches/enable_logging.patch"
-    APPLIED_PATCHES+=("patches/enable_logging.patch")
+    CONTROL_FILE="control-debug"
+    git apply "${SCRIPT_DIR}/patches/enable_logging.patch"
+    APPLIED_PATCHES+=("${SCRIPT_DIR}/patches/enable_logging.patch")
 fi
 
 if [ -n "${ENABLE_LOGGING}" ] && [ "${CONFIGURATION}" != "Debug" ]; then
     # Logging is already enabled on debug
     COMMON_OPTIONS+=('SWIFT_ACTIVE_COMPILATION_CONDITIONS=$SWIFT_ACTIVE_COMPILATION_CONDITIONS ENABLE_LOGGING')
     DEB_VERSION+="+logging"
-    CONTROL_PATH="control-logging"
-    git apply "patches/enable_logging.patch"
-    APPLIED_PATCHES+=("patches/enable_logging.patch")
+    CONTROL_FILE="control-logging"
+    git apply "${SCRIPT_DIR}/patches/enable_logging.patch"
+    APPLIED_PATCHES+=("${SCRIPT_DIR}/patches/enable_logging.patch")
 fi
 
 if [ -n "${DHINAK}" ]; then
     DEB_VERSION+="+dhinak"
-    CONTROL_PATH="control-dhinak"
-    git apply "patches/output_serial.patch"
-    APPLIED_PATCHES+=("patches/output_serial.patch")
+    CONTROL_FILE="control-dhinak"
+    git apply "${SCRIPT_DIR}/patches/output_serial.patch"
+    APPLIED_PATCHES+=("${SCRIPT_DIR}/patches/output_serial.patch")
 fi
 
-if [ -z "${CONTROL_PATH}" ]; then
-    CONTROL_PATH="control"
+if [ -z "${CONTROL_FILE}" ]; then
+    CONTROL_FILE="control"
 fi
 
 CHMOD="$(command -v gchmod || command -v chmod)" || abort "Missing chmod"
@@ -193,7 +195,7 @@ xcodebuild -target loader "${COMMON_OPTIONS[@]}"
 
 SIZE=$(du -sk work/dist | cut -f 1)
 "${MKDIR}" -p work/dist/DEBIAN
-"${SED}" -e "s|@DEB_VERSION@|${DEB_VERSION}|g" -e "s|@DEB_ARCH@|${DEB_ARCH}|g" "packaging/${CONTROL_PATH}" > work/dist/DEBIAN/control
+"${SED}" -e "s|@DEB_VERSION@|${DEB_VERSION}|g" -e "s|@DEB_ARCH@|${DEB_ARCH}|g" "${SCRIPT_DIR}/packaging/${CONTROL_FILE}" > work/dist/DEBIAN/control
 echo "Installed-Size: $SIZE" >> work/dist/DEBIAN/control
 
 # Not compatible with BSD sed!
@@ -213,3 +215,4 @@ cp "packages/ellekit_${DEB_VERSION}_${DEB_ARCH}_$(date +%F).deb" "packages/ellek
 for ((idx = ${#APPLIED_PATCHES[@]} - 1; idx >= 0; idx--)); do
     git apply --reverse "${APPLIED_PATCHES[idx]}"
 done
+"${RM}" -rf work

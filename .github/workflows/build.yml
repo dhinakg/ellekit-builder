@@ -51,10 +51,13 @@ jobs:
         uses: actions/checkout@v3
         with:
           path: builder
-      - name: Copy builder files
+      # - name: Copy builder files
+      #   run: |
+      #     cp -r builder/* .
+      #     rm -rf builder
+      - name: Add builder to git exclude
         run: |
-          cp -r builder/* .
-          rm -rf builder
+          printf "builder\n" >> .git/info/exclude
       
       - name: Get tags
         run: git fetch --prune --unshallow --tags
@@ -72,11 +75,11 @@ jobs:
 
       - name: Build ${{ matrix.name }}
         run: |
-          ./build.sh ${{ matrix.flags }}
+          ./builder/build.sh ${{ matrix.flags }}
           
       - name: Build ${{ matrix.name }} (rootless)
         run: |
-          ./build.sh ${{ matrix.flags }} -r
+          ./builder/build.sh ${{ matrix.flags }} -r
 
       - name: Upload packages
         uses: actions/upload-artifact@v3
@@ -88,7 +91,7 @@ jobs:
     name: Deploy
     runs-on: ubuntu-latest
     needs: package
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && false }}
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
 
     steps:
       - name: Download artifacts

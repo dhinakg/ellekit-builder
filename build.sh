@@ -19,8 +19,8 @@ Build and package ElleKit for CONFIGURATION and TARGET.
     -h                display this help and exit
     -l                enable logging on RELEASE builds.
                       (Already enabled on debug builds.)
-    -s                output to /dev/console instead of
-                      /var/mobile/log.txt
+    -s                output to /dev/console (serial) 
+                      instead of /var/mobile/log.txt
     -r                package for rootless iOS
     -c CONFIGURATION  build configuration passed to Xcode
                       Debug or Release (default)
@@ -117,6 +117,7 @@ if [ -n "${ENABLE_LOGGING}" ] && [ "${CONFIGURATION}" != "Debug" ]; then
 fi
 
 if [ -n "${OUTPUT_SERIAL}" ]; then
+    DEB_VERSION+="+serial"
     git apply "patches/output_serial.patch"
 fi
 

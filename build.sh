@@ -154,6 +154,12 @@ do
         DEB_ARCH="iphoneos-arm"
     fi
 
+    if [[ -n "${CI}" ]]; then
+        DEB_FILENAME="packages/ellekit_${DEB_VERSION}_${DEB_ARCH}.deb"
+    else
+        DEB_FILENAME="packages/ellekit_${DEB_VERSION}_${DEB_ARCH}_$(date +%F).deb"
+    fi
+
     "${RM}" -rf work
     "${MKDIR}" -p work/dist
 
@@ -201,8 +207,8 @@ do
     if [ ! -d packages ]; then
         "${MKDIR}" packages
     fi
-    "${FAKEROOT}" -i work/.fakeroot -s work/.fakeroot -- dpkg-deb -Zgzip -b work/dist "packages/ellekit_${DEB_VERSION}_${DEB_ARCH}_$(date +%F).deb"
-    # cp "packages/ellekit_${DEB_VERSION}_${DEB_ARCH}_$(date +%F).deb" "packages/ellekit_latest_${DEB_ARCH}.deb"
+    "${FAKEROOT}" -i work/.fakeroot -s work/.fakeroot -- dpkg-deb -Zgzip -b work/dist "${DEB_FILENAME}"
+    # cp "${DEB_FILENAME}" "packages/ellekit_latest_${DEB_ARCH}.deb"
     "${RM}" -rf work
 done
 

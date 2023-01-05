@@ -12,6 +12,9 @@ on:
 concurrency:
   group: ${{ github.workflow }}
 
+permissions:
+  contents: write
+
 jobs:
   needs-build:
     name: Check if build is needed
@@ -144,3 +147,9 @@ jobs:
           git pull
           git commit -m "Update packages"
           git push
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          prerelease: true
+          tag_name: ${{ needs.needs-build.outputs.commit }}
+          files: packages/**/*.deb

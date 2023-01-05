@@ -39,11 +39,13 @@ jobs:
         run: |
           if [[ "$(git rev-parse HEAD)" != "$(cat repo/last_build)" ]]; then
             echo "commit=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+            git describe --tags --always --dirty | sed 's/-/~/' | sed 's/-/\./g' | sed 's/\.g/\./g' | sed 's/^v//g'
             echo "tag_name=$(git describe --tags --always --dirty | sed 's/-/~/' | sed 's/-/\./g' | sed 's/\.g/\./g' | sed 's/^v//g')" >> $GITHUB_OUTPUT
             echo "build=true" >> $GITHUB_OUTPUT
           else
             echo "build=false" >> $GITHUB_OUTPUT
           fi
+          exit 1
 
   package:
     name: Package

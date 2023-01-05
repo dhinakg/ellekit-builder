@@ -88,11 +88,14 @@ GIT_COMMIT_HASH="$(git describe --tags --always --dirty | sed 's/-/~/' | sed 's/
 DEB_VERSION="${GIT_COMMIT_HASH}${GIT_BRANCH}"
 APPLIED_PATCHES=()
 
-
 # Fixes for the latest commit
-git apply "${SCRIPT_DIR}/fixes/add_shared_region.patch" || true
-APPLIED_PATCHES+=("${SCRIPT_DIR}/fixes/add_shared_region.patch")
-DEB_VERSION+="+fixes"
+if ls -A1q "${SCRIPT_DIR}/fixes" 2>/dev/null | grep -q .; then
+    for fix in "${SCRIPT_DIR}"/fixes/*.patch; do
+        git apply "${fix}"
+        APPLIED_PATCHES+=("${fix}")
+    done
+    DEB_VERSION+="+fixes"
+fi
 
 # Do not add configuration for release builds
 if [ "${CONFIGURATION}" = "Debug" ]; then
@@ -143,8 +146,7 @@ xcodebuild -target ellekit "${COMMON_OPTIONS[@]}"
 xcodebuild -target launchd "${COMMON_OPTIONS[@]}"
 xcodebuild -target loader "${COMMON_OPTIONS[@]}"
 
-for i in 0 1
-do
+for i in 0 1; do
     if [ "$i" = 1 ]; then
         # Rootless
         INSTALL_PREFIX="/var/jb"
@@ -194,8 +196,8 @@ do
 
     SIZE=$(du -sk work/dist | cut -f 1)
     "${MKDIR}" -p work/dist/DEBIAN
-    "${SED}" -e "s|@DEB_VERSION@|${DEB_VERSION}|g" -e "s|@DEB_ARCH@|${DEB_ARCH}|g" "${SCRIPT_DIR}/packaging/${CONTROL_FILE}" > work/dist/DEBIAN/control
-    echo "Installed-Size: $SIZE" >> work/dist/DEBIAN/control
+    "${SED}" -e "s|@DEB_VERSION@|${DEB_VERSION}|g" -e "s|@DEB_ARCH@|${DEB_ARCH}|g" "${SCRIPT_DIR}/packaging/${CONTROL_FILE}" >work/dist/DEBIAN/control
+    echo "Installed-Size: $SIZE" >>work/dist/DEBIAN/control
 
     # Not compatible with BSD sed!
     "${SED}" -i'' '$a\' work/dist/DEBIAN/control

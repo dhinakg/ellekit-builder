@@ -1,5 +1,5 @@
 diff --git a/logger/Logger.swift b/logger/Logger.swift
-index e583314..341360a 100644
+index 383f477..341360a 100644
 --- a/logger/Logger.swift
 +++ b/logger/Logger.swift
 @@ -31,7 +31,11 @@ private struct TextLog: TextOutputStream {
@@ -7,9 +7,9 @@ index e583314..341360a 100644
      static var shared = TextLog()
      
 +#if DEBUG || ENABLE_LOGGING
-     private var enableLogging = true
++    private var enableLogging = true
 +#else
-+    private var enableLogging = false
+     private var enableLogging = false
 +#endif
      
      func write(_ string: String) {

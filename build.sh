@@ -101,8 +101,12 @@ fi
 if [ "${CONFIGURATION}" = "Debug" ]; then
     DEB_VERSION+="+debug"
     CONTROL_FILE="control-debug"
-    git apply "${SCRIPT_DIR}/patches/enable_logging.patch"
-    APPLIED_PATCHES+=("${SCRIPT_DIR}/patches/enable_logging.patch")
+    if git apply "${SCRIPT_DIR}/patches/enable_logging_a.patch"; then
+        APPLIED_PATCHES+=("${SCRIPT_DIR}/patches/enable_logging_a.patch")
+    else
+        git apply "${SCRIPT_DIR}/patches/enable_logging_b.patch"
+        APPLIED_PATCHES+=("${SCRIPT_DIR}/patches/enable_logging_b.patch")
+    fi
 fi
 
 if [ -n "${ENABLE_LOGGING}" ] && [ "${CONFIGURATION}" != "Debug" ]; then
@@ -110,8 +114,12 @@ if [ -n "${ENABLE_LOGGING}" ] && [ "${CONFIGURATION}" != "Debug" ]; then
     COMMON_OPTIONS+=('SWIFT_ACTIVE_COMPILATION_CONDITIONS=$SWIFT_ACTIVE_COMPILATION_CONDITIONS ENABLE_LOGGING')
     DEB_VERSION+="+logging"
     CONTROL_FILE="control-logging"
-    git apply "${SCRIPT_DIR}/patches/enable_logging.patch"
-    APPLIED_PATCHES+=("${SCRIPT_DIR}/patches/enable_logging.patch")
+    if git apply "${SCRIPT_DIR}/patches/enable_logging_a.patch"; then
+        APPLIED_PATCHES+=("${SCRIPT_DIR}/patches/enable_logging_a.patch")
+    else
+        git apply "${SCRIPT_DIR}/patches/enable_logging_b.patch"
+        APPLIED_PATCHES+=("${SCRIPT_DIR}/patches/enable_logging_b.patch")
+    fi
 fi
 
 if [ -n "${DHINAK}" ]; then

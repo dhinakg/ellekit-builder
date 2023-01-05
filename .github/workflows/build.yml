@@ -28,6 +28,9 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: evelyneee/ellekit
+      - name: Get tags
+        run: git fetch --prune --unshallow --tags
+
       - name: Clone repo
         uses: actions/checkout@v3
         with:
@@ -39,6 +42,7 @@ jobs:
         run: |
           if [[ "$(git rev-parse HEAD)" != "$(cat repo/last_build)" ]]; then
             echo "commit=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+            git describe --tags --always --dirty
             git describe --tags --always --dirty | sed 's/-/~/' | sed 's/-/\./g' | sed 's/\.g/\./g' | sed 's/^v//g'
             echo "tag_name=$(git describe --tags --always --dirty | sed 's/-/~/' | sed 's/-/\./g' | sed 's/\.g/\./g' | sed 's/^v//g')" >> $GITHUB_OUTPUT
             echo "build=true" >> $GITHUB_OUTPUT

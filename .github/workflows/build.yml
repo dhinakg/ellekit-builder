@@ -40,7 +40,7 @@ jobs:
       - name: Check if build is needed
         id: check
         run: |
-          if [[ "$(git rev-parse HEAD)" != "$(cat repo/last_build)" ]] || true; then
+          if [[ "$(git rev-parse HEAD)" != "$(cat repo/last_build)" ]]; then
             echo "commit=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
             echo "tag_name=$(git describe --tags --always --dirty | sed 's/-/~/' | sed 's/-/\./g' | sed 's/\.g/\./g' | sed 's/^v//g')" >> $GITHUB_OUTPUT
             echo "build=true" >> $GITHUB_OUTPUT

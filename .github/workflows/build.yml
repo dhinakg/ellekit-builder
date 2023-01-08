@@ -8,6 +8,18 @@ on:
   schedule:
     - cron: '*/5 * * * *'
   workflow_dispatch:
+    inputs:
+      force:
+        description: 'Force build'
+        required: true
+        default: false
+        type: boolean
+      force-deploy:
+        description: 'Force deploy if build is forced'
+        required: true
+        default: false
+        type: boolean
+
 
 concurrency:
   group: ${{ github.workflow }}
@@ -40,8 +52,10 @@ jobs:
           path: repo
       - name: Check if build is needed
         id: check
+        env:
+          FORCE_BUILD: ${{ github.event.inputs.force }}
         run: |
-          if [[ "$(git rev-parse HEAD)" != "$(cat repo/last_build)" ]]; then
+          if [[ "$(git rev-parse HEAD)" != "$(cat repo/last_build)" ]] || [[ "$FORCE_BUILD" == "true" ]]; then
             echo "commit=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
             echo "tag_name=$(git describe --tags --always --dirty | sed 's/-/\./g' | sed 's/\.g/\./g' | sed 's/^v//g')" >> $GITHUB_OUTPUT
             echo "build=true" >> $GITHUB_OUTPUT
@@ -148,6 +162,7 @@ jobs:
           mkdir pool || true
           cp packages/**/*.deb pool/
       - name: Push
+        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.force != true || github.event.inputs.force-deploy == true }}
         run: |
           git add pool last_build
           git pull

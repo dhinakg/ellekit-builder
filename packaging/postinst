@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+
+echo "Starting ElleKit..."
+
+@INSTALL_PREFIX@/usr/bin/ellekit/loader

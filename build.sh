@@ -187,6 +187,10 @@ for i in 0 1; do
 
     "${MKDIR}" -p "work/dist/${INSTALL_PREFIX}/usr/lib/TweakInject"
 
+    # Symlink the loader into /etc/rc.d/
+    "${MKDIR}" -p "work/dist/${INSTALL_PREFIX}/etc/rc.d"
+    "${LN}" -s "${INSTALL_PREFIX}/usr/libexec/ellekit/loader" "work/dist/${INSTALL_PREFIX}/etc/rc.d/launchd"
+
     # Some extra substrate compatibility
     "${MKDIR}" -p "work/dist/${INSTALL_PREFIX}/Library/Frameworks/CydiaSubstrate.framework"
     "${LN}" -s "${INSTALL_PREFIX}/usr/lib/libellekit.dylib" "work/dist/${INSTALL_PREFIX}/Library/Frameworks/CydiaSubstrate.framework/CydiaSubstrate"
@@ -204,6 +208,7 @@ for i in 0 1; do
 
     SIZE=$(du -sk work/dist | cut -f 1)
     "${MKDIR}" -p work/dist/DEBIAN
+    "${SED}" -e "s|@INSTALL_PREFIX@|${INSTALL_PREFIX}|g" "${SCRIPT_DIR}/packaging/postinst" >work/dist/DEBIAN/postinst
     "${SED}" -e "s|@DEB_VERSION@|${DEB_VERSION}|g" -e "s|@DEB_ARCH@|${DEB_ARCH}|g" "${SCRIPT_DIR}/packaging/${CONTROL_FILE}" >work/dist/DEBIAN/control
     echo "Installed-Size: $SIZE" >>work/dist/DEBIAN/control
 

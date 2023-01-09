@@ -19,8 +19,6 @@ Usage: ${0##*/} [-hlr] [-c CONFIGURATION] [-t TARGET]
 Build and package ElleKit for CONFIGURATION and TARGET.
 
     -h                display this help and exit
-    -l                enable logging on RELEASE builds.
-                      (Already enabled on debug builds.)
     -s                Dhinak's special builds
                       currently:
                       output to /dev/console (serial) 
@@ -32,7 +30,7 @@ Build and package ElleKit for CONFIGURATION and TARGET.
 EOF
 }
 
-while getopts 'c:t:lsrh' opt; do
+while getopts 'c:t:srh' opt; do
     case "${opt}" in
     c)
         if [ "${OPTARG}" != "Release" ] && [ "${OPTARG}" != "Debug" ]; then
@@ -53,9 +51,6 @@ while getopts 'c:t:lsrh' opt; do
             show_help
             exit 1
         fi
-        ;;
-    l)
-        ENABLE_LOGGING=true
         ;;
     s)
         DHINAK=true
@@ -101,25 +96,6 @@ fi
 if [ "${CONFIGURATION}" = "Debug" ]; then
     DEB_VERSION+="+debug"
     CONTROL_FILE="control-debug"
-    if git apply "${SCRIPT_DIR}/patches/enable_logging_a.patch"; then
-        APPLIED_PATCHES+=("${SCRIPT_DIR}/patches/enable_logging_a.patch")
-    else
-        git apply "${SCRIPT_DIR}/patches/enable_logging_b.patch"
-        APPLIED_PATCHES+=("${SCRIPT_DIR}/patches/enable_logging_b.patch")
-    fi
-fi
-
-if [ -n "${ENABLE_LOGGING}" ] && [ "${CONFIGURATION}" != "Debug" ]; then
-    # Logging is already enabled on debug
-    COMMON_OPTIONS+=('SWIFT_ACTIVE_COMPILATION_CONDITIONS=$SWIFT_ACTIVE_COMPILATION_CONDITIONS ENABLE_LOGGING')
-    DEB_VERSION+="+logging"
-    CONTROL_FILE="control-logging"
-    if git apply "${SCRIPT_DIR}/patches/enable_logging_a.patch"; then
-        APPLIED_PATCHES+=("${SCRIPT_DIR}/patches/enable_logging_a.patch")
-    else
-        git apply "${SCRIPT_DIR}/patches/enable_logging_b.patch"
-        APPLIED_PATCHES+=("${SCRIPT_DIR}/patches/enable_logging_b.patch")
-    fi
 fi
 
 if [ -n "${DHINAK}" ]; then
@@ -153,6 +129,7 @@ XARGS="$(command -v gxargs || command -v xargs)" || abort "Missing xargs"
 xcodebuild -target ellekit "${COMMON_OPTIONS[@]}"
 xcodebuild -target launchd "${COMMON_OPTIONS[@]}"
 xcodebuild -target loader "${COMMON_OPTIONS[@]}"
+xcodebuild -target safemode-ui "${COMMON_OPTIONS[@]}"
 
 for i in 0 1; do
     if [ "$i" = 1 ]; then
@@ -177,6 +154,7 @@ for i in 0 1; do
     # TODO: adjust for macoS
     "${INSTALL}" -Dm644 build/"${CONFIGURATION}"*/libellekit.dylib "work/dist/${INSTALL_PREFIX}/usr/lib/libellekit.dylib"
     "${INSTALL}" -Dm644 build/"${CONFIGURATION}"*/pspawn.dylib "work/dist/${INSTALL_PREFIX}/usr/lib/ellekit/pspawn.dylib"
+    "${INSTALL}" -Dm644 build/"${CONFIGURATION}"*/libsafemode-ui.dylib "work/dist/${INSTALL_PREFIX}/usr/lib/ellekit/SafeMode.dylib"
     "${INSTALL}" -Dm755 build/"${CONFIGURATION}"*/loader "work/dist/${INSTALL_PREFIX}/usr/libexec/ellekit/loader"
 
     "${LN}" -s libellekit.dylib "work/dist/${INSTALL_PREFIX}/usr/lib/libsubstrate.dylib"
@@ -184,6 +162,7 @@ for i in 0 1; do
 
     "${INSTALL_NAME_TOOL}" -id "${INSTALL_PREFIX}/usr/lib/libellekit.dylib" "work/dist/${INSTALL_PREFIX}/usr/lib/libellekit.dylib"
     "${INSTALL_NAME_TOOL}" -id "${INSTALL_PREFIX}/usr/lib/ellekit/pspawn.dylib" "work/dist/${INSTALL_PREFIX}/usr/lib/ellekit/pspawn.dylib"
+    "${INSTALL_NAME_TOOL}" -id "${INSTALL_PREFIX}/usr/lib/ellekit/SafeMode.dylib" "work/dist/${INSTALL_PREFIX}/usr/lib/ellekit/SafeMode.dylib"
 
     "${MKDIR}" -p "work/dist/${INSTALL_PREFIX}/usr/lib/TweakInject"
 

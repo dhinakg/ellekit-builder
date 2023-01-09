@@ -3,8 +3,8 @@ Name: ElleKit (Beta) (Dhinak)
 Version: @DEB_VERSION@
 Architecture: @DEB_ARCH@
 Maintainer: Dhinak G <dhinak@dhinak.net>
-Conflicts: cy+cpu.arm64e, com.ex.substitute, org.coolstar.libhooker, science.xnu.substitute, mobilesubstrate, ellekit, ellekit-debug, ellekit-logging
-Replaces: com.ex.libsubstitute, org.coolstar.libhooker, mobilesubstrate, ellekit, ellekit-debug, ellekit-logging
+Conflicts: cy+cpu.arm64e, com.ex.substitute, org.coolstar.libhooker, science.xnu.substitute, mobilesubstrate, ellekit, ellekit-debug
+Replaces: com.ex.libsubstitute, org.coolstar.libhooker, mobilesubstrate, ellekit, ellekit-debug
 Provides: mobilesubstrate (= 99), org.coolstar.libhooker (= 1.6.9), ellekit
 Author: Evelyn
 Section: Tweak Injection

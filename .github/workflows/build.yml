@@ -35,6 +35,7 @@ jobs:
       build: ${{ steps.check.outputs.build }}
       commit: ${{ steps.check.outputs.commit }}
       tag_name: ${{ steps.check.outputs.tag_name }}
+      description: ${{ steps.check.outputs.description }}
     
     steps:
       - name: Checkout
@@ -55,9 +56,12 @@ jobs:
         env:
           FORCE_BUILD: ${{ github.event.inputs.force }}
         run: |
+          echo "commit=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
           if [[ "$(git rev-parse HEAD)" != "$(cat repo/last_build)" ]] || [[ "$FORCE_BUILD" == "true" ]]; then
-            echo "commit=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
             echo "tag_name=$(git describe --tags --always --dirty | sed 's/-/\./g' | sed 's/\.g/\./g' | sed 's/^v//g')" >> $GITHUB_OUTPUT
+            echo "description<<EOF" >> $GITHUB_OUTPUT
+            echo "$(git log --format=%B -n 1 HEAD)" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
             echo "build=true" >> $GITHUB_OUTPUT
           else
             echo "build=false" >> $GITHUB_OUTPUT
@@ -76,8 +80,8 @@ jobs:
             flags: ""
           # - name: release (rootless)
           #   flags: "-r"
-          - name: release with logs
-            flags: "-l"
+          # - name: release with logs
+          #   flags: "-l"
           # - name: release with logs (rootless)
           #   flags: "-l -r"
           - name: debug
@@ -173,3 +177,7 @@ jobs:
           prerelease: true
           tag_name: ${{ needs.needs-build.outputs.tag_name }}
           files: packages/**/*.deb
+          body: |
+            https://github.com/evelyneee/ellekit/commit/${{ needs.needs-build.outputs.commit }}
+            
+            ${{ needs.needs-build.outputs.description }}

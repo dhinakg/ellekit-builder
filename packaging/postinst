@@ -2,4 +2,4 @@
 
 echo "Starting ElleKit..."
 
-@INSTALL_PREFIX@/usr/bin/ellekit/loader
+@INSTALL_PREFIX@/usr/libexec/ellekit/loader

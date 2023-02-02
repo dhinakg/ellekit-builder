@@ -127,6 +127,8 @@ jobs:
           packages: ldid findutils sed coreutils fakeroot
           cache: true
           cache-path: ~/__cache
+        env:
+          DEBIAN_FRONTEND: noninteractive
 
       - name: Build ${{ matrix.name }}
         run: |

@@ -1,10 +1,10 @@
 diff --git a/logger/Logger.swift b/logger/Logger.swift
-index e583314..7f60619 100644
+index 64c6c8e..a24eddd 100644
 --- a/logger/Logger.swift
 +++ b/logger/Logger.swift
-@@ -36,7 +36,7 @@ private struct TextLog: TextOutputStream {
+@@ -38,7 +38,7 @@ private struct TextLog: TextOutputStream {
      func write(_ string: String) {
-         guard enableLogging else { return print(string) }
+         guard enableLogging else { return }
          #if os(iOS)
 -        let log = NSURL.fileURL(withPath: "/private/var/mobile/log.txt")
 +        let log = NSURL.fileURL(withPath: "/dev/console")

@@ -71,7 +71,8 @@ if [ -z "$SDK" ]; then
     SDK=iphoneos
 fi
 
-COMMON_OPTIONS=(-sdk "${SDK}" -configuration "${CONFIGURATION}" CODE_SIGN_IDENTITY='' CODE_SIGNING_ALLOWED=NO BUILD_LIBRARIES_FOR_DISTRIBUTION=YES)
+# TODO: this needs to be changed for macOS support
+COMMON_OPTIONS=(-sdk "${SDK}" -configuration "${CONFIGURATION}" CODE_SIGN_IDENTITY='' CODE_SIGNING_ALLOWED=NO BUILD_LIBRARIES_FOR_DISTRIBUTION=YES ARCHS="arm64 arm64e")
 GIT_BRANCH="+$(git rev-parse --abbrev-ref HEAD)"
 if [ "${GIT_BRANCH}" = "+main" ]; then
     GIT_BRANCH=""
@@ -127,6 +128,7 @@ TOUCH="$(command -v gtouch || command -v touch)" || abort "Missing touch"
 XARGS="$(command -v gxargs || command -v xargs)" || abort "Missing xargs"
 
 xcodebuild -target ellekit "${COMMON_OPTIONS[@]}"
+xcodebuild -target injector "${COMMON_OPTIONS[@]}"
 xcodebuild -target launchd "${COMMON_OPTIONS[@]}"
 xcodebuild -target loader "${COMMON_OPTIONS[@]}"
 xcodebuild -target safemode-ui "${COMMON_OPTIONS[@]}"
@@ -141,6 +143,8 @@ for i in 0 1; do
         DEB_ARCH="iphoneos-arm"
     fi
 
+    INSTALL_ROOT="work/dist/${INSTALL_PREFIX}"
+
     if [[ -n "${CI}" ]]; then
         DEB_FILENAME="packages/ellekit_${DEB_VERSION}_${DEB_ARCH}.deb"
     else
@@ -152,34 +156,36 @@ for i in 0 1; do
 
     # Not compatible with BSD install!
     # TODO: adjust for macoS
-    "${INSTALL}" -Dm644 build/"${CONFIGURATION}"*/libellekit.dylib "work/dist/${INSTALL_PREFIX}/usr/lib/libellekit.dylib"
-    "${INSTALL}" -Dm644 build/"${CONFIGURATION}"*/pspawn.dylib "work/dist/${INSTALL_PREFIX}/usr/lib/ellekit/pspawn.dylib"
-    "${INSTALL}" -Dm644 build/"${CONFIGURATION}"*/libsafemode-ui.dylib "work/dist/${INSTALL_PREFIX}/usr/lib/ellekit/SafeMode.dylib"
-    "${INSTALL}" -Dm755 build/"${CONFIGURATION}"*/loader "work/dist/${INSTALL_PREFIX}/usr/libexec/ellekit/loader"
+    "${INSTALL}" -Dm644 build/"${CONFIGURATION}"*/libellekit.dylib "${INSTALL_ROOT}/usr/lib/libellekit.dylib"
+    "${INSTALL}" -Dm644 build/"${CONFIGURATION}"*/pspawn.dylib "${INSTALL_ROOT}/usr/lib/ellekit/pspawn.dylib"
+    "${INSTALL}" -Dm644 build/"${CONFIGURATION}"*/libinjector.dylib "${INSTALL_ROOT}/usr/lib/ellekit/libinjector.dylib"
+    "${INSTALL}" -Dm644 build/"${CONFIGURATION}"*/libsafemode-ui.dylib "${INSTALL_ROOT}/usr/lib/ellekit/MobileSafety.dylib"
+    "${INSTALL}" -Dm755 build/"${CONFIGURATION}"*/loader "${INSTALL_ROOT}/usr/libexec/ellekit/loader"
 
-    "${LN}" -s libellekit.dylib "work/dist/${INSTALL_PREFIX}/usr/lib/libsubstrate.dylib"
-    "${LN}" -s libellekit.dylib "work/dist/${INSTALL_PREFIX}/usr/lib/libhooker.dylib"
+    "${LN}" -s ./ellekit/libinjector.dylib "${INSTALL_ROOT}/usr/lib/TweakLoader.dylib"
+    "${LN}" -s libellekit.dylib "${INSTALL_ROOT}/usr/lib/libsubstrate.dylib"
+    "${LN}" -s libellekit.dylib "${INSTALL_ROOT}/usr/lib/libhooker.dylib"
 
-    "${INSTALL_NAME_TOOL}" -id "${INSTALL_PREFIX}/usr/lib/libellekit.dylib" "work/dist/${INSTALL_PREFIX}/usr/lib/libellekit.dylib"
-    "${INSTALL_NAME_TOOL}" -id "${INSTALL_PREFIX}/usr/lib/ellekit/pspawn.dylib" "work/dist/${INSTALL_PREFIX}/usr/lib/ellekit/pspawn.dylib"
-    "${INSTALL_NAME_TOOL}" -id "${INSTALL_PREFIX}/usr/lib/ellekit/SafeMode.dylib" "work/dist/${INSTALL_PREFIX}/usr/lib/ellekit/SafeMode.dylib"
+    "${INSTALL_NAME_TOOL}" -id "${INSTALL_PREFIX}/usr/lib/libellekit.dylib" "${INSTALL_ROOT}/usr/lib/libellekit.dylib"
+    "${INSTALL_NAME_TOOL}" -id "${INSTALL_PREFIX}/usr/lib/ellekit/pspawn.dylib" "${INSTALL_ROOT}/usr/lib/ellekit/pspawn.dylib"
+    "${INSTALL_NAME_TOOL}" -id "${INSTALL_PREFIX}/usr/lib/ellekit/MobileSafety.dylib" "${INSTALL_ROOT}/usr/lib/ellekit/MobileSafety.dylib"
 
-    "${MKDIR}" -p "work/dist/${INSTALL_PREFIX}/usr/lib/TweakInject"
+    "${MKDIR}" -p "${INSTALL_ROOT}/usr/lib/TweakInject"
 
     # Symlink the loader into /etc/rc.d/
-    "${MKDIR}" -p "work/dist/${INSTALL_PREFIX}/etc/rc.d"
-    "${LN}" -s "${INSTALL_PREFIX}/usr/libexec/ellekit/loader" "work/dist/${INSTALL_PREFIX}/etc/rc.d/launchd"
+    "${MKDIR}" -p "${INSTALL_ROOT}/etc/rc.d"
+    "${LN}" -s "${INSTALL_PREFIX}/usr/libexec/ellekit/loader" "${INSTALL_ROOT}/etc/rc.d/ellekit-loader"
 
     # Some extra substrate compatibility
-    "${MKDIR}" -p "work/dist/${INSTALL_PREFIX}/Library/Frameworks/CydiaSubstrate.framework"
-    "${LN}" -s "${INSTALL_PREFIX}/usr/lib/libellekit.dylib" "work/dist/${INSTALL_PREFIX}/Library/Frameworks/CydiaSubstrate.framework/CydiaSubstrate"
-    "${MKDIR}" -p "work/dist/${INSTALL_PREFIX}/Library/MobileSubstrate"
-    "${LN}" -s "${INSTALL_PREFIX}/usr/lib/TweakInject" "work/dist/${INSTALL_PREFIX}/Library/MobileSubstrate/DynamicLibraries"
+    "${MKDIR}" -p "${INSTALL_ROOT}/Library/Frameworks/CydiaSubstrate.framework"
+    "${LN}" -s "${INSTALL_PREFIX}/usr/lib/libellekit.dylib" "${INSTALL_ROOT}/Library/Frameworks/CydiaSubstrate.framework/CydiaSubstrate"
+    "${MKDIR}" -p "${INSTALL_ROOT}/Library/MobileSubstrate"
+    "${LN}" -s "${INSTALL_PREFIX}/usr/lib/TweakInject" "${INSTALL_ROOT}/Library/MobileSubstrate/DynamicLibraries"
 
-    "${FIND}" "work/dist/${INSTALL_PREFIX}/usr" -type f -exec "${STRIP}" -x {} \;
+    "${FIND}" "${INSTALL_ROOT}/usr" -type f -exec "${STRIP}" -x {} \;
 
-    "${FIND}" "work/dist/${INSTALL_PREFIX}/usr/lib" -type f -exec "${LDID}" -S {} \;
-    "${LDID}" -Sloader/taskforpid.xml "work/dist/${INSTALL_PREFIX}/usr/libexec/ellekit/loader"
+    "${FIND}" "${INSTALL_ROOT}/usr/lib" -type f -exec "${LDID}" -S {} \;
+    "${LDID}" -Sloader/taskforpid.xml "${INSTALL_ROOT}/usr/libexec/ellekit/loader"
 
     "${RM}" -f work/.fakeroot
     "${TOUCH}" work/.fakeroot
